@@ -40,6 +40,8 @@ const bareme = {
     // Ou option : abatement de 40%; puis intégration au barème de l'IR.
   },
 
+// https://www.urssaf.fr/portail/home/employeur/calculer-les-cotisations/les-taux-de-cotisations.html
+// https://www.urssaf.fr/portail/home/taux-et-baremes/taux-de-cotisations/les-employeurs/les-taux-de-cotisations-de-droit.html
   smic: 1 521.22,
   pss: 3377,
   assuranceMaladie: {
@@ -61,6 +63,7 @@ const bareme = {
     ]
   },
   assuranceViellesse: {
+    note: "Base salaire BRUT",
     employeur: {
       //plafonné et sur la rémunération total
       tranches: [
@@ -97,6 +100,7 @@ const bareme = {
     }
   },
   allocationsFamilliales: {
+    note: "Base salaire BRUT",
     segments: [
       {
         label: "<3,5 smics",
@@ -113,15 +117,44 @@ const bareme = {
       }
     ]
   },
+  contributionPatronaleDialogueSocial: {
+    taux: 0.00016
+  },
   fnal: {
     label: "moins de 20 salariés",
     taux: 0.001
   },
   chomage: {
-    taux: 0.0405
+    tranches: [
+      {
+        label: "Dûe jusqu'à 4 plafond de la sécurité sociale",
+        taux: 0.0405,
+        min: 0,
+        max: 13508 // 4 * pss
+      },
+      {
+        label: "Exonéré au delà de 4 PSS",
+        taux: 0,
+        min: 13508,
+        max: null // 4 * pss
+      }
+    ]
   },
   ags: {
-    taux: 0.0015
+    tranches: [
+      {
+        label: "Dûe jusqu'à 4 plafond de la sécurité sociale",
+        taux: 0.0015,
+        min: 0,
+        max: 13508 // 4 * pss
+      },
+      {
+        label: "Exonéré au delà de 4 PSS",
+        taux: 0,
+        min: 13508,
+        max: null // 4 * pss
+      }
+    ]
   },
   forfaitSocial: {
     taux: 0.2
@@ -132,18 +165,18 @@ const bareme = {
   prevoyance: {
 
   },
-
-
-
-  chargesSociales: {
-      securiteSociale: {
-        cotisationSurLaTotaliteDuSalaire: {
-          taux: 0.004
-        },
-        cotisationPlafonee
-      }
-  }
 }
+
+
+//   chargesSociales: {
+//       securiteSociale: {
+//         cotisationSurLaTotaliteDuSalaire: {
+//           taux: 0.004
+//         },
+//         cotisationPlafonee
+//       }
+//   }
+// }
 
 const computeBenefice = (data) => {
   data.benefice = data.chiffreAffaire * (1 - bareme.tva.taux)
@@ -167,6 +200,45 @@ const computeDividendesFlatTax = (data) => {
   data.dividendesNet = data.beneficeApresIS * (1 - bareme.pfu.prelevementSociaux.taux - bareme.pfu.impotRevenu.taux)
 }
 
+const computeSalaire = (data) => {
+  // Cout = Net + Cot_Sal + Cot_Pat
+
+  // {
+  //  Brut = Net + Cot_Sal
+  //  Sal = Brut * S_tx_Sal // Z : S_tx_Sal non linéaire !!
+  // }
+  // =>
+  //  Brut = Net / (1 - S_tx_Sal)
+
+  const salaireBrut = 2000
+
+  const computeCoutEntreprise = (data) => {
+    const salaireBrut = data.salaireBrut
+    let cotisations = computeSegment(salaireBrut, bareme.assuranceMaladie.segments)
+    cotisations += computeTranche(salaireBrut, bareme.assuranceViellesse.employeur.tranches)
+    cotisations += computeSegment(salaireBrut, bareme.allocationsFamilliales.segments)
+    cotisation += salaireBrut * bareme.contributionPatronaleDialogueSocial.taux
+    // TODO: accident travail, versement transport
+    cotisation += salaireBrut * bareme.fnal.taux
+
+    return salaireBrut + cotisations
+  }
+
+  const computeSalaireNet = (data) => {
+    const salaireBrut = data.salaireBrut
+
+    let cotisations = computeTranche(salaireBrut, bareme.assuranceViellesse.salarie.tranches)
+    // TODO: accidents travail, csg, crds, versement transport
+    cotisation += computeTranche(salaireBrut, bareme.chomage.tranches)
+    cotisation += salaireBrut * bareme.ags.taux
+
+    return salaireBrut - cotisations
+  }
+
+}
+
+
+
 const compute = () => {
   computeBenefice(data)
   computeBeneficeApresIS(data)
@@ -180,3 +252,28 @@ const render = () => {
 
 compute()
 render()
+
+
+// Tools
+
+const computeSegment(base, segments) {
+  for (let segment in segments) {
+    if (base >= segment.min && (segment.max == null || base < segment.max)) {
+      return base * segment.taux
+    }
+  }
+  // TODO: throw error !
+  return 0
+}
+
+const computeTranche(base, tranches) {
+  return tranches.reduce((res, tranche) => {
+    if (base < tranche.min) {
+      return res
+    } else if (base >= tranche.max) {
+      return res + (tranche.max - tranche.min) * tranche.taux
+    } else {
+      return res + (base - tranche.min) * tranche.taux
+    }
+  }, 0)
+}

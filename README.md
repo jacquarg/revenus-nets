@@ -21,3 +21,10 @@
 salaire_net = CA - TVA - charge_patronale - charge_salariales
 revenu_net = salaire_net - IR
 
+
+# TODO
+
+* Calcul salaire net (ie déductions des charges sociales)
+* Calcul IR
+* Revue du modèle de données
+* Autre moyen de revenus (PEE, ...)
