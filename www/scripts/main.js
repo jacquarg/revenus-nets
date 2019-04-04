@@ -54,7 +54,7 @@ const bareme = {
         label: "<2,5 smics ex-CICE",
         taux: 0.073,
         min: 0,
-        max:  3804.42,//2.5 * 1521.22,
+        max: 3804.42,//2.5 * 1521.22,
         // 2,5 * le smic.
       },
       {
@@ -77,7 +77,7 @@ const bareme = {
           max: 3377,
         },
         {
-          label: "Au dela1.90",
+          label: "Au dela 1.90",
           taux: 0.019,
           min: 3377,
           max: null
@@ -208,8 +208,99 @@ const bareme = {
   forfaitSocial: {
     taux: 0.2
   },
+  ceg: {
+    label: "Contribution d'équilibre général",
+    employeur: {
+      tranches: [
+        {
+          label: "Tranche 1: de 0 à 1 PSS",
+          taux: 0.0129,
+          min: 0,
+          max: 3377 // 1 * pss
+        },
+        {
+          label: "Tranche 2 : de 1 à 8 PSS",
+          taux: 0.0162,
+          min: 3377,
+          max: 27016 // 8 * pss
+        },
+        {
+          label: "Exonéré au delà",
+          taux: 0,
+          min: 27016,
+          max: null // 4 * pss
+        }
+      ]
+    },
+    salarie: {
+      tranches: [
+        {
+          label: "Tanche 1: de 0 à 1 PSS",
+          taux: 0.0086,
+          min: 0,
+          max: 3377 // 1 * pss
+        },
+        {
+          label: "Tranche 2 : de 1 à 8 PSS",
+          taux: 0.0108,
+          min: 3377,
+          max: 27016 // 8 * pss
+        },
+        {
+          label: "Exonéré au delà",
+          taux: 0,
+          min: 27016,
+          max: null // 4 * pss
+        }
+      ]
+    }
+  },
   retraiteComplementaire: {
-
+    label: "Agirc arco",
+    employeur: {
+      tranches: [
+        {
+          label: "Tanche 1: de 0 à 1 PSS",
+          taux: 0.0472,
+          min: 0,
+          max: 3377 // 1 * pss
+        },
+        {
+          label: "Tranche 2 : de 1 à 8 PSS",
+          taux: 0.1295,
+          min: 3377,
+          max: 27016 // 8 * pss
+        },
+        {
+          label: "Exonéré au delà",
+          taux: 0,
+          min: 27016,
+          max: null // 4 * pss
+        }
+      ]
+    },
+    salarie: {
+      tranches: [
+        {
+          label: "Tanche 1: de 0 à 1 PSS",
+          taux: 0.0315,
+          min: 0,
+          max: 3377 // 1 * pss
+        },
+        {
+          label: "Tranche 2 : de 1 à 8 PSS",
+          taux: 0.0864,
+          min: 3377,
+          max: 27016 // 8 * pss
+        },
+        {
+          label: "Exonéré au delà",
+          taux: 0,
+          min: 27016,
+          max: null // 4 * pss
+        }
+      ]
+    }
   },
   prevoyance: {
     notes: "MM, taux employeur et salariés sur 2 tranches.",
@@ -314,21 +405,35 @@ const computeSalaire = (data) => {}
     let cotisations = computeSegment(salaireBrut, bareme.assuranceMaladie.segments)
     cotisations += computeTranche(salaireBrut, bareme.assuranceViellesse.employeur.tranches)
     cotisations += computeSegment(salaireBrut, bareme.allocationsFamilliales.segments)
+
+    console.log(`Costisations patronales SS: ${cotisations}`)
+
+
     cotisations += salaireBrut * bareme.contributionPatronaleDialogueSocial.taux
+
+    cotisations += computeTranche(salaireBrut, bareme.ags.tranches)
     cotisations += salaireBrut * bareme.atmp.taux
+    cotisations += computeTranche(salaireBrut, bareme.chomage.tranches)
     cotisations += salaireBrut * bareme.fnal.taux
+    cotisations += computeTranche(salaireBrut, bareme.ceg.employeur.tranches)
+    cotisations += computeTranche(salaireBrut, bareme.retraiteComplementaire.employeur.tranches)
     cotisations += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
     cotisations += bareme.soinsSante.forfait
 
+    console.log(`Costisations patronales : ${cotisations}`)
     return salaireBrut + cotisations
   }
 
   const computeSalaireNet = (data) => {
     const salaireBrut = data.salaireBrut
     let cotisations = computeTranche(salaireBrut, bareme.assuranceViellesse.salarie.tranches)
-    cotisations += computeTranche(salaireBrut, bareme.chomage.tranches)
-    cotisations += computeTranche(salaireBrut, bareme.ags.tranches)
+
+    console.log(`Costisations salariales SS: ${cotisations}`)
+
+
     cotisations += computeTranche(salaireBrut, bareme.prevoyance.salarie.tranches)
+    cotisations += computeTranche(salaireBrut, bareme.ceg.salarie.tranches)
+    cotisations += computeTranche(salaireBrut, bareme.retraiteComplementaire.salarie.tranches)
 
     // TODO: csg crds, inclure d'autre élément patronaux dans la base de calcul ?
     let baseCSG = salaireBrut
@@ -338,6 +443,8 @@ const computeSalaire = (data) => {}
 
     cotisations += computeTranche(baseCSG, bareme.csg.tranches)
     cotisations += computeTranche(baseCSG, bareme.crds.tranches)
+
+    console.log(`Costisations salariales : ${cotisations}`)
     return salaireBrut - cotisations
   }
 
@@ -367,7 +474,7 @@ render()
 // Tools
 
 function computeSegment(base, segments) {
-  for (let segment in segments) {
+  for (let segment of segments) {
     if (base >= segment.min && (segment.max == null || base < segment.max)) {
       return base * segment.taux
     }
