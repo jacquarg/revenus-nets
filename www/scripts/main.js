@@ -1,9 +1,12 @@
 
 const data = {
   chiffreAffaire: 10000,
-  revenuNet: 0
+  revenuNet: 0,
+  salaireBrut: 3179,
 }
 
+
+// https://www.urssaf.fr/portail/home/taux-et-baremes/taux-de-cotisations/les-employeurs/les-taux-de-cotisations-de-droit.html
 const bareme = {
   tva: { taux: 0.2 },
   impotSocietes: {
@@ -42,7 +45,7 @@ const bareme = {
 
 // https://www.urssaf.fr/portail/home/employeur/calculer-les-cotisations/les-taux-de-cotisations.html
 // https://www.urssaf.fr/portail/home/taux-et-baremes/taux-de-cotisations/les-employeurs/les-taux-de-cotisations-de-droit.html
-  smic: 1 521.22,
+  smic: 1521.22,
   pss: 3377,
   assuranceMaladie: {
     note: "Base salaire BRUT",
@@ -117,6 +120,11 @@ const bareme = {
       }
     ]
   },
+  atmp: {
+    label: "Accidents du travail (AT) et maladies professionnelles (MP)",
+    note: "Taux assigné à chaque entreprises par la  Carsat. Cotisation employeur sur la totalité du salaire.",
+    taux: 0.009
+  },
   contributionPatronaleDialogueSocial: {
     taux: 0.00016
   },
@@ -136,7 +144,7 @@ const bareme = {
         label: "Exonéré au delà de 4 PSS",
         taux: 0,
         min: 13508,
-        max: null // 4 * pss
+        max: null
       }
     ]
   },
@@ -156,6 +164,47 @@ const bareme = {
       }
     ]
   },
+  csg: {
+    note: "Une part de la csg sera déductibles d'impôts sur le revenu. C'est une cotisation salariale. La base de calcul est le salaire BRUT, plus certaines prestations complémentaires de santé et prévoyance. Un abatement de 1,75% est appliqué à la base de calcul, sur les 4 premier PSS",
+    taux: 0.092,
+    tauxImposable: 0.024,
+    tauxNonImposable: 0.068,
+    tranches: [
+      {
+        label: "Abatement de 1,75% en dessous de 4 PSS",
+        taux: 0.09039, // 9.20% * (1 - 1,75%) = 9.039%
+        min: 0,
+        max: 13508 // 4 * pss
+      },
+      {
+        label: "Assiète globale au delà de 4 PSS",
+        taux: 0.092,
+        min: 13508,
+        max: null // 4 * pss
+      }
+    ]
+  },
+  crds: {
+    note: "Base de calcul identique à la CSG",
+    taux: 0.005,
+    tranches: [
+      {
+        label: "Abatement de 1,75% en dessous de 4 PSS",
+        taux: 0.0046125, // 0.50% * (1 - 1,75%) = 0.49125%
+        min: 0,
+        max: 13508 // 4 * pss
+      },
+      {
+        label: "Assiète globale au delà de 4 PSS",
+        taux: 0.005,
+        min: 13508,
+        max: null // 4 * pss
+      }
+    ]
+  },
+  versementTransport: {
+    note: "Pour entreprises de 11 salariés et plus."
+  },
   forfaitSocial: {
     taux: 0.2
   },
@@ -163,8 +212,56 @@ const bareme = {
 
   },
   prevoyance: {
-
+    notes: "MM, taux employeur et salariés sur 2 tranches.",
+    employeur: {
+      tranches: [
+        {
+          label: "Tanche 1: de 0 à 1 PSS",
+          taux: 0.0037,
+          min: 0,
+          max: 3377 // 1 * pss
+        },
+        {
+          label: "Tranche 2 : de 1 à 8 PSS",
+          taux: 0.0057,
+          min: 3377,
+          max: 27016 // 8 * pss
+        },
+        {
+          label: "Exonéré au delà",
+          taux: 0,
+          min: 27016,
+          max: null // 4 * pss
+        }
+      ]
+    },
+    salarie: {
+      tranches: [
+        {
+          label: "Tanche 1: de 0 à 1 PSS",
+          taux: 0.0037,
+          min: 0,
+          max: 3377 // 1 * pss
+        },
+        {
+          label: "Tranche 2 : de 1 à 8 PSS",
+          taux: 0.0057,
+          min: 3377,
+          max: 27016 // 8 * pss
+        },
+        {
+          label: "Exonéré au delà",
+          taux: 0,
+          min: 27016,
+          max: null // 4 * pss
+        }
+      ]
+    },
   },
+  soinsSante: {
+    notes: "Alptis, forfait.",
+    forfait: 43.59,
+  }
 }
 
 
@@ -200,7 +297,7 @@ const computeDividendesFlatTax = (data) => {
   data.dividendesNet = data.beneficeApresIS * (1 - bareme.pfu.prelevementSociaux.taux - bareme.pfu.impotRevenu.taux)
 }
 
-const computeSalaire = (data) => {
+const computeSalaire = (data) => {}
   // Cout = Net + Cot_Sal + Cot_Pat
 
   // {
@@ -210,32 +307,39 @@ const computeSalaire = (data) => {
   // =>
   //  Brut = Net / (1 - S_tx_Sal)
 
-  const salaireBrut = 2000
+  // const salaireBrut = 2000÷
 
   const computeCoutEntreprise = (data) => {
     const salaireBrut = data.salaireBrut
     let cotisations = computeSegment(salaireBrut, bareme.assuranceMaladie.segments)
     cotisations += computeTranche(salaireBrut, bareme.assuranceViellesse.employeur.tranches)
     cotisations += computeSegment(salaireBrut, bareme.allocationsFamilliales.segments)
-    cotisation += salaireBrut * bareme.contributionPatronaleDialogueSocial.taux
-    // TODO: accident travail, versement transport
-    cotisation += salaireBrut * bareme.fnal.taux
+    cotisations += salaireBrut * bareme.contributionPatronaleDialogueSocial.taux
+    cotisations += salaireBrut * bareme.atmp.taux
+    cotisations += salaireBrut * bareme.fnal.taux
+    cotisations += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
+    cotisations += bareme.soinsSante.forfait
 
     return salaireBrut + cotisations
   }
 
   const computeSalaireNet = (data) => {
     const salaireBrut = data.salaireBrut
-
     let cotisations = computeTranche(salaireBrut, bareme.assuranceViellesse.salarie.tranches)
-    // TODO: accidents travail, csg, crds, versement transport
-    cotisation += computeTranche(salaireBrut, bareme.chomage.tranches)
-    cotisation += salaireBrut * bareme.ags.taux
+    cotisations += computeTranche(salaireBrut, bareme.chomage.tranches)
+    cotisations += computeTranche(salaireBrut, bareme.ags.tranches)
+    cotisations += computeTranche(salaireBrut, bareme.prevoyance.salarie.tranches)
 
+    // TODO: csg crds, inclure d'autre élément patronaux dans la base de calcul ?
+    let baseCSG = salaireBrut
+    // TODO: à factoriser !
+    baseCSG += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
+    baseCSG += bareme.soinsSante.forfait
+
+    cotisations += computeTranche(baseCSG, bareme.csg.tranches)
+    cotisations += computeTranche(baseCSG, bareme.crds.tranches)
     return salaireBrut - cotisations
   }
-
-}
 
 
 
@@ -244,19 +348,25 @@ const compute = () => {
   computeBeneficeApresIS(data)
   computeDividendesFlatTax(data)
   data.revenuNet = data.dividendesNet
+
+  data.salaireNet = computeSalaireNet(data)
+  data.coutEntreprise = computeCoutEntreprise(data)
 }
 
 const render = () => {
   $('#revenuNet').text(data.revenuNet)
+  $('#salaireNet').text(data.salaireNet)
+  $('#salaireBrut').text(data.salaireBrut)
+  $('#coutEntreprise').text(data.coutEntreprise)
 }
 
 compute()
 render()
 
-
+///////////////////////////////////////////////////////////
 // Tools
 
-const computeSegment(base, segments) {
+function computeSegment(base, segments) {
   for (let segment in segments) {
     if (base >= segment.min && (segment.max == null || base < segment.max)) {
       return base * segment.taux
@@ -266,7 +376,7 @@ const computeSegment(base, segments) {
   return 0
 }
 
-const computeTranche(base, tranches) {
+function computeTranche(base, tranches) {
   return tranches.reduce((res, tranche) => {
     if (base < tranche.min) {
       return res
