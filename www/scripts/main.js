@@ -2,7 +2,7 @@
 const data = {
   chiffreAffaire: 10000,
   revenuNet: 0,
-  salaireBrut: 3179,
+  salaireBrut: 3564.76,//3179,
 }
 
 
@@ -182,7 +182,7 @@ const bareme = {
         min: 13508,
         max: null // 4 * pss
       }
-    ]
+    ],
   },
   crds: {
     note: "Base de calcul identique à la CSG",
@@ -352,7 +352,88 @@ const bareme = {
   soinsSante: {
     notes: "Alptis, forfait.",
     forfait: 43.59,
-  }
+  },
+
+  csgCrdsNonDeductible: {
+    note: "Une part de la csg sera déductibles d'impôts sur le revenu. C'est une cotisation salariale. La base de calcul est le salaire BRUT, plus certaines prestations complémentaires de santé et prévoyance. Un abatement de 1,75% est appliqué à la base de calcul, sur les 4 premier PSS",
+    taux: 0.092,
+    tauxImposable: 0.024,
+    tauxNonImposable: 0.068,
+    tranches: [
+      {
+        label: "Abatement de 1,75% en dessous de 4 PSS",
+        taux: 0.0284925, // (0,5% + 2,4%) * (1 - 1,75%) = 2.84925%
+        min: 0,
+        max: 13508 // 4 * pss
+      },
+      {
+        label: "Assiète globale au delà de 4 PSS",
+        taux: 0.029,
+        min: 13508,
+        max: null // 4 * pss
+      }
+    ],
+  },
+
+  csgDeductible: {
+    note: "Une part de la csg sera déductibles d'impôts sur le revenu. C'est une cotisation salariale. La base de calcul est le salaire BRUT, plus certaines prestations complémentaires de santé et prévoyance. Un abatement de 1,75% est appliqué à la base de calcul, sur les 4 premier PSS",
+    taux: 0.092,
+    tauxImposable: 0.024,
+    tauxNonImposable: 0.068,
+    tranches: [
+      {
+        label: "Abatement de 1,75% en dessous de 4 PSS",
+        taux: 0.06681, // 6.8% * (1 - 1,75%) = 6.681%
+        min: 0,
+        max: 13508 // 4 * pss
+      },
+      {
+        label: "Assiète globale au delà de 4 PSS",
+        taux: 0.068,
+        min: 13508,
+        max: null // 4 * pss
+      }
+    ],
+  },
+
+
+  // Impots revenus
+  ir: {
+    label: "Impôt sur le revenu",
+    tranches: [
+      {
+        taux: 0,
+        min: 0,
+        max: 9964
+      },
+      {
+        taux: 0.14,
+        min: 9965,
+        max: 27519
+      },
+      {
+        taux: 0.3,
+        min: 27520,
+        max: 73779
+      },
+      {
+        taux: 0.41,
+        min: 73780,
+        max: 156244
+      },
+      {
+        taux: 0.45,
+        min: 156245,
+        max: null
+      },
+    ]
+  },
+//
+//
+// Plus de 156 245 €
+//
+//
+// 45 %
 }
 
 
@@ -448,6 +529,54 @@ const computeSalaire = (data) => {}
     return salaireBrut - cotisations
   }
 
+  const computeSalaireNetImposable = (data) => {
+    const salaireBrut = data.salaireBrut
+    const salaireNet = data.salaireNet
+
+    let netImposable = salaireNet
+    let cotisations = 0
+    cotisations += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
+    cotisations += computeTranche(salaireBrut, bareme.prevoyance.salarie.tranches)
+    cotisations += bareme.soinsSante.forfait
+
+    // cotisations += computeTranche(salaireBrut, bareme.retraiteComplementaire.salarie.tranches)
+// cotisations += computeTranche(salaireBrut, bareme.ceg.salarie.tranches)
+
+    let baseCSG = salaireBrut
+    // TODO: à factoriser !
+    baseCSG += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
+    baseCSG += bareme.soinsSante.forfait
+    cotisations += computeTranche(baseCSG, bareme.csgCrdsNonDeductible.tranches)
+
+    console.log(`Costisations net imposable : ${cotisations}`)
+    return salaireNet + cotisations
+  }
+
+const computeSalaireNetImposable2 = (data) => {
+    const salaireBrut = data.salaireBrut
+
+    let netImposable = data.salaireBrut
+    netImposable -= computeTranche(salaireBrut, bareme.assuranceViellesse.salarie.tranches)
+
+
+    // netImposable -= computeTranche(salaireBrut, bareme.prevoyance.salarie.tranches)
+    netImposable -= computeTranche(salaireBrut, bareme.ceg.salarie.tranches)
+    netImposable -= computeTranche(salaireBrut, bareme.retraiteComplementaire.salarie.tranches)
+
+    // TODO: csg crds, inclure d'autre élément patronaux dans la base de calcul ?
+    let baseCSG = salaireBrut
+    // TODO: à factoriser !
+    baseCSG += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
+    baseCSG += bareme.soinsSante.forfait
+
+    netImposable -= computeTranche(baseCSG, bareme.csgDeductible.tranches)
+
+    netImposable += bareme.soinsSante.forfait
+    netImposable += computeTranche(salaireBrut, bareme.prevoyance.employeur.tranches)
+
+    // console.log(`Costisations net imposable : ${cotisations}`)
+    return netImposable
+}
 
 
 const compute = () => {
@@ -458,6 +587,8 @@ const compute = () => {
 
   data.salaireNet = computeSalaireNet(data)
   data.coutEntreprise = computeCoutEntreprise(data)
+  data.netImposable = computeSalaireNetImposable2(data)
+  console.log(data.netImposable)
 }
 
 const render = () => {
