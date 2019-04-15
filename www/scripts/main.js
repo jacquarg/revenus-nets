@@ -1,10 +1,13 @@
 
 const data = {
-  chiffreAffaire: 10000,
+  chiffreAffaire: 30000,
   revenuNet: 0,
-  salaireBrut: 3564.76,//3179,
+  salaireBrut: 3564.76 * 12,//3179,
+  parts: 1,
 }
 
+const smic = 1521.22
+const pss = 40524// mensuel : 3377,
 
 // https://www.urssaf.fr/portail/home/taux-et-baremes/taux-de-cotisations/les-employeurs/les-taux-de-cotisations-de-droit.html
 const bareme = {
@@ -45,8 +48,7 @@ const bareme = {
 
 // https://www.urssaf.fr/portail/home/employeur/calculer-les-cotisations/les-taux-de-cotisations.html
 // https://www.urssaf.fr/portail/home/taux-et-baremes/taux-de-cotisations/les-employeurs/les-taux-de-cotisations-de-droit.html
-  smic: 1521.22,
-  pss: 3377,
+
   assuranceMaladie: {
     note: "Base salaire BRUT",
     segments: [
@@ -54,13 +56,13 @@ const bareme = {
         label: "<2,5 smics ex-CICE",
         taux: 0.073,
         min: 0,
-        max: 3804.42,//2.5 * 1521.22,
+        max: 2.5 * smic,
         // 2,5 * le smic.
       },
       {
         label: "> 2,5",
         taux: 0.133,
-        min: 3804.42,
+        min: 2.5 * smic,
         max: null
       }
     ]
@@ -74,12 +76,12 @@ const bareme = {
           label: "Jusqu'au PSS : plafonné + total = 8,55 + 1.90",
           taux: 0.1045,
           min: 0,
-          max: 3377,
+          max: pss,
         },
         {
           label: "Au dela 1.90",
           taux: 0.019,
-          min: 3377,
+          min: pss,
           max: null
         }
       ]
@@ -91,12 +93,12 @@ const bareme = {
           label: "Jusqu'au PSS : plafonné + total = 6,90 + 0,4",
           taux: 0.073,
           min: 0,
-          max: 3377,
+          max: pss,
         },
         {
           label: "Au dela 0,4",
           taux: 0.004,
-          min: 3377,
+          min: pss,
           max: null
         }
       ]
@@ -109,13 +111,13 @@ const bareme = {
         label: "<3,5 smics",
         taux: 0.0345,
         min: 0,
-        max: 5324.27, //3.5 * 1521.22,
-        // 2,5 * le smic.
+        max: 3.5 * smic,
+        // 3,5 * le smic.
       },
       {
         label: "> 3,5",
         taux: 0.133,
-        min: 5324.27, //3.5 * 1521.22,
+        min: 3.5 * smic, //3.5 * smic,
         max: null
       }
     ]
@@ -138,12 +140,12 @@ const bareme = {
         label: "Dûe jusqu'à 4 plafond de la sécurité sociale",
         taux: 0.0405,
         min: 0,
-        max: 13508 // 4 * pss
+        max: 4 * pss // 4 * pss
       },
       {
         label: "Exonéré au delà de 4 PSS",
         taux: 0,
-        min: 13508,
+        min: 4 * pss,
         max: null
       }
     ]
@@ -154,12 +156,12 @@ const bareme = {
         label: "Dûe jusqu'à 4 plafond de la sécurité sociale",
         taux: 0.0015,
         min: 0,
-        max: 13508 // 4 * pss
+        max: 4 * pss // 4 * pss
       },
       {
         label: "Exonéré au delà de 4 PSS",
         taux: 0,
-        min: 13508,
+        min: 4 * pss,
         max: null // 4 * pss
       }
     ]
@@ -174,12 +176,12 @@ const bareme = {
         label: "Abatement de 1,75% en dessous de 4 PSS",
         taux: 0.09039, // 9.20% * (1 - 1,75%) = 9.039%
         min: 0,
-        max: 13508 // 4 * pss
+        max: 4 * pss // 4 * pss
       },
       {
         label: "Assiète globale au delà de 4 PSS",
         taux: 0.092,
-        min: 13508,
+        min: 4 * pss,
         max: null // 4 * pss
       }
     ],
@@ -192,12 +194,12 @@ const bareme = {
         label: "Abatement de 1,75% en dessous de 4 PSS",
         taux: 0.0046125, // 0.50% * (1 - 1,75%) = 0.49125%
         min: 0,
-        max: 13508 // 4 * pss
+        max: 4 * pss // 4 * pss
       },
       {
         label: "Assiète globale au delà de 4 PSS",
         taux: 0.005,
-        min: 13508,
+        min: 4 * pss,
         max: null // 4 * pss
       }
     ]
@@ -216,18 +218,18 @@ const bareme = {
           label: "Tranche 1: de 0 à 1 PSS",
           taux: 0.0129,
           min: 0,
-          max: 3377 // 1 * pss
+          max: pss // 1 * pss
         },
         {
           label: "Tranche 2 : de 1 à 8 PSS",
           taux: 0.0162,
-          min: 3377,
-          max: 27016 // 8 * pss
+          min: pss,
+          max: 8 * pss // 8 * pss
         },
         {
           label: "Exonéré au delà",
           taux: 0,
-          min: 27016,
+          min: 8 * pss,
           max: null // 4 * pss
         }
       ]
@@ -238,19 +240,19 @@ const bareme = {
           label: "Tanche 1: de 0 à 1 PSS",
           taux: 0.0086,
           min: 0,
-          max: 3377 // 1 * pss
+          max: pss // 1 * pss
         },
         {
           label: "Tranche 2 : de 1 à 8 PSS",
           taux: 0.0108,
-          min: 3377,
-          max: 27016 // 8 * pss
+          min: pss,
+          max: 8 * pss // 8 * pss
         },
         {
           label: "Exonéré au delà",
           taux: 0,
-          min: 27016,
-          max: null // 4 * pss
+          min: 8 * pss,
+          max: null // 8 * pss
         }
       ]
     }
@@ -263,19 +265,19 @@ const bareme = {
           label: "Tanche 1: de 0 à 1 PSS",
           taux: 0.0472,
           min: 0,
-          max: 3377 // 1 * pss
+          max: pss // 1 * pss
         },
         {
           label: "Tranche 2 : de 1 à 8 PSS",
           taux: 0.1295,
-          min: 3377,
-          max: 27016 // 8 * pss
+          min: pss,
+          max: 8 * pss // 8 * pss
         },
         {
           label: "Exonéré au delà",
           taux: 0,
-          min: 27016,
-          max: null // 4 * pss
+          min: 8 * pss,
+          max: null // 8 * pss
         }
       ]
     },
@@ -285,19 +287,19 @@ const bareme = {
           label: "Tanche 1: de 0 à 1 PSS",
           taux: 0.0315,
           min: 0,
-          max: 3377 // 1 * pss
+          max: pss // 1 * pss
         },
         {
           label: "Tranche 2 : de 1 à 8 PSS",
           taux: 0.0864,
-          min: 3377,
-          max: 27016 // 8 * pss
+          min: pss,
+          max: 8 * pss // 8 * pss
         },
         {
           label: "Exonéré au delà",
           taux: 0,
-          min: 27016,
-          max: null // 4 * pss
+          min: 8 * pss,
+          max: null // 8 * pss
         }
       ]
     }
@@ -310,19 +312,19 @@ const bareme = {
           label: "Tanche 1: de 0 à 1 PSS",
           taux: 0.0037,
           min: 0,
-          max: 3377 // 1 * pss
+          max: pss // 1 * pss
         },
         {
           label: "Tranche 2 : de 1 à 8 PSS",
           taux: 0.0057,
-          min: 3377,
-          max: 27016 // 8 * pss
+          min: pss,
+          max: 8 * pss // 8 * pss
         },
         {
           label: "Exonéré au delà",
           taux: 0,
-          min: 27016,
-          max: null // 4 * pss
+          min: 8 * pss,
+          max: null // 8 * pss
         }
       ]
     },
@@ -337,21 +339,21 @@ const bareme = {
         {
           label: "Tranche 2 : de 1 à 8 PSS",
           taux: 0.0057,
-          min: 3377,
-          max: 27016 // 8 * pss
+          min: pss,
+          max: 8 * pss // 8 * pss
         },
         {
           label: "Exonéré au delà",
           taux: 0,
-          min: 27016,
-          max: null // 4 * pss
+          min: 8 * pss,
+          max: null // 8 * pss
         }
       ]
     },
   },
   soinsSante: {
     notes: "Alptis, forfait.",
-    forfait: 43.59,
+    forfait: 12 * 43.59,
   },
 
   csgCrdsNonDeductible: {
@@ -364,12 +366,12 @@ const bareme = {
         label: "Abatement de 1,75% en dessous de 4 PSS",
         taux: 0.0284925, // (0,5% + 2,4%) * (1 - 1,75%) = 2.84925%
         min: 0,
-        max: 13508 // 4 * pss
+        max: 4 * pss // 4 * pss
       },
       {
         label: "Assiète globale au delà de 4 PSS",
         taux: 0.029,
-        min: 13508,
+        min: 4 * pss,
         max: null // 4 * pss
       }
     ],
@@ -385,12 +387,12 @@ const bareme = {
         label: "Abatement de 1,75% en dessous de 4 PSS",
         taux: 0.06681, // 6.8% * (1 - 1,75%) = 6.681%
         min: 0,
-        max: 13508 // 4 * pss
+        max: 4 * pss // 4 * pss
       },
       {
         label: "Assiète globale au delà de 4 PSS",
         taux: 0.068,
-        min: 13508,
+        min: 4 * pss,
         max: null // 4 * pss
       }
     ],
@@ -579,6 +581,13 @@ const computeSalaireNetImposable2 = (data) => {
 }
 
 
+const computeIR = (data) => {
+  const netImposable = data.netImposable * 0.9
+
+  const ir = data.parts * computeTranche(netImposable / data.parts, bareme.ir.tranches)
+  return ir
+}
+
 const compute = () => {
   computeBenefice(data)
   computeBeneficeApresIS(data)
@@ -588,7 +597,12 @@ const compute = () => {
   data.salaireNet = computeSalaireNet(data)
   data.coutEntreprise = computeCoutEntreprise(data)
   data.netImposable = computeSalaireNetImposable2(data)
-  console.log(data.netImposable)
+
+  data.ir = computeIR(data)
+
+  console.log(`Impôt sur le revenu : ${data.ir}`)
+
+  data.revenuNet += data.salaireNet - data.ir
 }
 
 const render = () => {
@@ -596,6 +610,8 @@ const render = () => {
   $('#salaireNet').text(data.salaireNet)
   $('#salaireBrut').text(data.salaireBrut)
   $('#coutEntreprise').text(data.coutEntreprise)
+  $('#chiffreAffaire').text(data.chiffreAffaire)
+
 }
 
 compute()
